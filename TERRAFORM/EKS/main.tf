@@ -1,7 +1,11 @@
 
+provider "aws" {
+  region = "us-east-2"
+}
+
 resource "aws_vpc" "eks-vpc" {
   cidr_block = "10.100.0.0/16"
-  tags       = {
+  tags = {
     Name = "EKS-VPC"
   }
 }
@@ -15,15 +19,16 @@ resource "aws_subnet" "eks-node-subnet" {
   availability_zone = data.aws_availability_zones.available.names[count.index]
   cidr_block        = "10.100.${count.index}.0/24"
   vpc_id            = aws_vpc.eks-vpc.id
+  map_public_ip_on_launch = "true"
   tags = {
-    Name = "eks-subnet-${count.index+1}"
+    Name = "eks-subnet-${count.index + 1}"
   }
 }
 
 
 resource "aws_internet_gateway" "eks-gw" {
   vpc_id = aws_vpc.eks-vpc.id
-  tags   = {
+  tags = {
     Name = "eks-igw"
   }
 }
@@ -34,7 +39,7 @@ resource "aws_route_table" "eks-rt" {
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = "${aws_internet_gateway.eks-gw.id}"
+    gateway_id = aws_internet_gateway.eks-gw.id
   }
 }
 
@@ -42,7 +47,7 @@ resource "aws_route_table" "eks-rt" {
 resource "aws_route_table_association" "eks-rt-association" {
   count          = 3
   subnet_id      = aws_subnet.eks-node-subnet.*.id[count.index]
-  route_table_id = "${aws_route_table.eks-rt.id}"
+  route_table_id = aws_route_table.eks-rt.id
 }
 
 
@@ -87,49 +92,49 @@ resource "aws_security_group" "eks-cluster-sg" {
 ### Amazon EKS makes calls to other AWS services to manage the resources that you use with the service.
 ### Before you can use the service, you must create an IAM role with the following IAM policies:
 
-        1- AmazonEKSServicePolicy
-        2- AmazonEKSClusterPolicy
+#        1- AmazonEKSServicePolicy
+#        2- AmazonEKSClusterPolicy
 
 resource "aws_iam_role" "eks-cluster-role" {
-  name = "eks-cluster-role"
-  assume_role_policy = << POLICY
-{
-  "Version": "2012-10-17",
-  "Statement": [
+  name               = "eks-cluster-role"
+  assume_role_policy = <<POLICY
   {
-    "Effect": "Allow",
-    "Principal": {
-      "Service": "eks.amazonaws.com"
-    },
-    "Action": "sts:AssumeRole"
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "eks.amazonaws.com"
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
   }
- ]
-}
-POLICY
+ POLICY
 }
 
 
 resource "aws_iam_role_policy_attachment" "eks-policy-cluster-attachment" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.cluster-role.name
+  role       = aws_iam_role.eks-cluster-role.name
 }
 
 
 resource "aws_iam_role_policy_attachment" "eks-policy-service-attachment" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
-  role       = aws_iam_role.cluster-role.name
+  role       = aws_iam_role.eks-cluster-role.name
 }
 
 
 ### For Worker nodes, you must create an IAM role with the following IAM policies:
-        1- AmazonEKSWorkerNodePolicy
-        2- AmazonEKS_CNI_Policy
-        3- AmazonEC2ContainerRegistryReadOnly
+#        1- AmazonEKSWorkerNodePolicy
+#        2- AmazonEKS_CNI_Policy
+#        3- AmazonEC2ContainerRegistryReadOnly
 
 resource "aws_iam_role" "eks-worker-role" {
   name = "eks-worker-role"
 
-  assume_role_policy = << POLICY
+  assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -174,12 +179,12 @@ resource "aws_iam_instance_profile" "worker-node-profile" {
 ### Once the VPC and IAM roles created, we can create EKS cluster with "aws_eks_cluster" resource type.
 
 resource "aws_eks_cluster" "eks-cluster" {
-  name = "my-eks-cluster-001"
-  role_arn = aws_iam_role.cluster-role.arn
+  name     = "my-eks-cluster-001"
+  role_arn = aws_iam_role.eks-cluster-role.arn
 
   vpc_config {
     security_group_ids = [aws_security_group.eks-cluster-sg.id]
-    subnet_ids = aws_subnet.eks-node-subnet.*.id
+    subnet_ids         = aws_subnet.eks-node-subnet.*.id
   }
 }
 
@@ -201,4 +206,9 @@ resource "aws_eks_node_group" "eks-cluster-node-group" {
   update_config {
     max_unavailable = 1
   }
+}
+
+output "eks-cster-name" {
+  value = "${aws_eks_cluster.eks-cluster.name}"
+
 }

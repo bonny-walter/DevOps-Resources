@@ -1,0 +1,221 @@
+pipeline {
+    agent any
+
+    environment {
+        TF_VERSION = '1.4.6'
+        AWS_REGION = 'us-east-2'
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
+    }
+
+    stages {
+        stage('Terraform Init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                sh 'terraform validate'
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                sh 'terraform plan -out=tfplan'
+            }
+        }
+
+        stage('Terraform Apply') {
+            when {
+                branch 'main'
+            }
+            steps {
+                input "Apply changes?"
+                sh 'terraform apply tfplan'
+            }
+        }
+    }
+}
+
+
+
+pipeline {
+    agent any
+
+    environment {
+        TF_VERSION = '1.4.6'
+        AWS_REGION = 'us-east-2'
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
+        SLACK_WEBHOOK_URL = credentials('slack-webhook-url') // Assuming you have set this up in Jenkins credentials
+    }
+
+    stages {
+        stage('Terraform Init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+
+        stage('Terraform Format Check') {
+            steps {
+                echo "Checking Terraform formatting..."
+                sh 'terraform fmt -check'
+            }
+        }
+
+        stage('Terraform Linting') {
+            steps {
+                echo "Linting Terraform code..."
+                // Example using tflint for syntax and best practice checks
+                sh 'tflint --init'
+                sh 'tflint'
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                echo "Validating Terraform configuration..."
+                sh 'terraform validate'
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                echo "Generating Terraform execution plan..."
+                sh 'terraform plan -out=tfplan'
+            }
+        }
+
+        stage('Approval') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    // Prompt for manual approval before applying
+                    def userInput = input message: 'Do you approve the Terraform changes?', ok: 'Approve', submitter: 'approver-user-id'
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo "Applying Terraform changes to infrastructure..."
+                sh 'terraform apply -auto-approve tfplan'
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean up generated files
+            sh 'rm -f tfplan'
+        }
+
+        success {
+            echo "Terraform deployment succeeded!"
+            slackSend channel: '#devops-alerts', color: 'good', message: "Terraform deployment succeeded for ${env.JOB_NAME} - ${env.BUILD_NUMBER}"
+        }
+
+        failure {
+            echo "Terraform deployment failed."
+            slackSend channel: '#devops-alerts', color: 'danger', message: "Terraform deployment failed for ${env.JOB_NAME} - ${env.BUILD_NUMBER}"
+        }
+    }
+}
+
+
+
+
+
+pipeline {
+    agent any
+
+    environment {
+        TF_VERSION = '1.4.6'
+        AWS_REGION = 'us-east-2'
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
+        SLACK_WEBHOOK_URL = credentials('slack-webhook-url')
+    }
+
+    stages {
+        stage('Terraform Init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+
+        stage('Terraform Format Check') {
+            steps {
+                sh 'terraform fmt -check'
+            }
+        }
+
+        stage('Terraform Linting') {
+            steps {
+                sh 'tflint --init'
+                sh 'tflint'
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                sh 'terraform validate'
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                sh 'terraform plan -out=tfplan'
+            }
+        }
+
+        stage('Run Terratest') {
+            steps {
+                echo "Running Terratest to verify infrastructure behavior..."
+                sh 'go test -v -timeout 30m ./test'  // Assumes tests are in the /test directory
+            }
+        }
+
+        stage('Approval') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    def userInput = input message: 'Do you approve the Terraform changes?', ok: 'Approve', submitter: 'approver-user-id'
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            when {
+                branch 'main'
+            }
+            steps {
+                sh 'terraform apply -auto-approve tfplan'
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'rm -f tfplan'
+        }
+
+        success {
+            slackSend channel: '#devops-alerts', color: 'good', message: "Terraform deployment succeeded for ${env.JOB_NAME} - ${env.BUILD_NUMBER}"
+        }
+
+        failure {
+            slackSend channel: '#devops-alerts', color: 'danger', message: "Terraform deployment failed for ${env.JOB_NAME} - ${env.BUILD_NUMBER}"
+        }
+    }
+}
