@@ -1,22 +1,123 @@
-### Summary of Useful MongoDB CLI Commands
+                                                  Basic Database Operations
 
-    show databases  : Lists all databases.
+### Show all databases 
+        show dbs
 
-    use <database> : Switches to a specific database.
+### Switch to a database 
+        use <database_name>
 
-    show collections : Lists all collections in the current database.
+### Create a database or collection
+MongoDB creates them automatically when you insert a document.
 
-    db.stats() : Displays general stats about the current database.
+### Show all collections in the current database
 
-    db.<collection>.stats() : Displays stats for a specific collection.
+        show collections
 
-    db.<collection>.getIndexes() : Lists all indexes for a collection.
+### Drop a database
 
-    db.<collection>.find() : Retrieves documents from a collection.
+        db.dropDatabase()
 
-    db.runCommand({ connectionStatus: 1 }) :Retrieves information about the current user.
+                                              Collection Operations
 
-    db.serverStatus() : Retrieves information about the MongoDB server.
-    
-    db.getName() : Returns the name of the current database.
+### Insert a document
+
+        db.<collection_name>.insert({ key: "value" })
+
+### Find all documents in a collection
+
+        db.<collection_name>.find()
+
+### Find documents with a filter
+
+        db.<collection_name>.find({ key: "value" })
+
+### Count documents in a collection
+
+        db.<collection_name>.countDocuments()
+
+### Update a document
+
+        db.<collection_name>.updateOne({ key: "value" }, { $set: { newKey: "newValue" } })
+
+### Delete a document
+
+        db.<collection_name>.deleteOne({ key: "value" })
+
+### Drop a collection
+
+        db.<collection_name>.drop()
+
+                                                    Indexing
+
+### Create an index
+
+        db.<collection_name>.createIndex({ key: 1 }) // 1 for ascending, -1 for descending
+
+### View indexes
+
+        db.<collection_name>.getIndexes()
+
+### Drop an index
+
+        db.<collection_name>.dropIndex("index_name")
+
+                                                  Admin Operations
+
+### Check server status
+
+        db.serverStatus()
+
+### View current operations
+
+        db.currentOp()
+
+### Kill a specific operation
+
+        db.killOp(<operation_id>)
+
+### Create a user
+
+        db.createUser({
+            user: "username",
+            pwd: "password",
+            roles: [{ role: "readWrite", db: "database_name" }]
+        })
+
+### List users
+
+        db.getUsers()
+
+### Drop a user
+
+        db.dropUser("username")
+
+                                               Backup and Restore
+
+### export data from a collection
+
+        mongodump --db <database_name> --collection <collection_name> --out <path>
+
+### Import data to a collection
+
+        mongorestore --db <database_name> <path>
+
+                                                Performance Monitoring
+
+### Enable profiling
+
+        db.setProfilingLevel(2)
+
+### View profiling information
+
+        db.system.profile.find()
+
+                                               Connection Management
+
+### Connect to MongoDB with authentication
+
+        mongo -u <username> -p <password> --authenticationDatabase <auth_db>
+
+### Connect to a specific host and port
+
+        mongo --host <host> --port <port>
 
