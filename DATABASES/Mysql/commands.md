@@ -1,142 +1,236 @@
-Basic MySQL Commands
+Connecting to the MySQL Server with the mysql Client
 
-### Connect to MySQL server
+Once your MySQL server is up and running, you can connect to it as the superuser root with the mysql client.
 
-        mysql -u <username> -p
+###  On Linux, enter the following command at the command line terminal (for installation using generic binaries, you might need to go first to the bin folder under the base directory of your MySQL installation):
 
-        You will be prompted to enter the password.
+     mysql -u root -p
 
-### Show all databases
+### On Windows, click Start, All Programs, MySQL, MySQL 5.7 Command Line Client (or MySQL 8.0 Command Line Client, respectively). If you did not install MySQL with the MySQL Installer, open a command prompt, go to the bin folder under the base directory of your MySQL installation, and issue the following command:
 
-        SHOW DATABASES;
+    C:\> mysql -u root -p
 
-### Switch to a database
+### You are then asked for the root password, which was assigned in different manners according to the way you installed MySQL. The installation and initialization instructions given above already explain the root password, but here is a quick summary:
 
-        USE <database_name>;
+### For installations using the MySQL Yum repository, MySQL SUSE repository, or RPM packages directly downloaded from Oracle, the generated root password is in the error log. View it with the following command:
 
-### Show all tables in the current database
+    sudo grep 'temporary password' /var/log/mysqld.log
 
-        SHOW TABLES;
+### For installations using the MySQL APT repository or Debian packages directly downloaded from Oracle, you should have already assigned the root password yourself
 
-### Create a new database
+### Note
 
-        CREATE DATABASE <database_name>;
+   1- Depending on the configuration you used to initialize the MySQL server, the error output might have been directed to the MySQL error log; go there and check for the password if you do not see the above message on your screen. The error log is a file with a .err extension, usually found under the server's data directory (the location of which depends on the server's configuration, but is likely to be the data folder under the base directory of your MySQL installation, or the /var/lib/mysql folder).
 
-### Drop a database
+    2- If you have initialized the data directory with mysqld --initialize-insecure instead, the root password is empty.
 
-        DROP DATABASE <database_name>;
+### For installations on Windows using the MySQL Installer and OS X using the installer package, you should have assigned a root password yourself. 
 
-Table Operations
+### If you have forgotten the root password you have chosen or have problems finding the temporary root password generated for you, see How to Reset the Root ### Password.
 
-### Create a table
+### Once you are connected to the MySQL server, a welcome message is displayed and the mysql> prompt appears, which looks like this:
 
-        CREATE TABLE <table_name> (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            age INT NOT NULL
-        );
+        Welcome to the MySQL monitor.  Commands end with ; or \g.
+        Your MySQL connection id is 4
+        Server version: 5.7.32 MySQL Community Server (GPL)
 
-### View table structure (schema)
+        Copyright (c) 2000, 2020, Oracle and/or its affiliates.
 
-        DESCRIBE <table_name>;
+        Oracle is a registered trademark of Oracle Corporation and/or its
+        affiliates. Other names may be trademarks of their respective
+        owners.
 
-### Rename a table
+        Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
 
-        RENAME TABLE <old_table_name> TO <new_table_name>;
+        mysql>
 
-### Drop a table
+### At this point, if you have logged in using a temporary root password that was generated during the installation or initialization process (which will be the case if you installed MySQL using the MySQL Yum repository, or using RPM packages or generic binaries from Oracle), change your root password by typing the following statement at the prompt:
 
-            DROP TABLE <table_name>;
+        mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';
 
-Insert, Select, Update, and Delete Data
+### Until you change your root password, you will not be able to exercise any of the superuser privileges, even if you are logged in as root.
 
-### Insert data into a table
+### Here are a few useful things to remember when using the mysql client:
 
-        INSERT INTO <table_name> (name, age) VALUES ('Alice', 30);
+    You can type your SQL statements on multiple lines by pressing Enter in the middle of it. 
+    Typing a semicolon (;) followed by an Enter ends an SQL statement and sends it to the server for execution; 
+    the same happens when a statement is ended with \g or \G (with the latter, returned results are displayed vertically). 
+    However, client commands (for example, help, quit, and clear) do not require a terminator. 
 
-### Select all data from a table
+### To disconnect from the MySQL server, type QUIT or \q at the client:
 
-        SELECT * FROM <table_name>;
+        mysql> QUIT
 
-### Filter data with a condition
+### Some Basic Operations with MySQL
 
-        SELECT * FROM <table_name> WHERE age > 25;
+### Here are some basic operations with the MySQL server. SQL Statements explains in detail the rich syntax and functionality of the SQL statements that are illustrated below.
 
-### Update data in a table
+### Showing existing databases.  Use a SHOW DATABASES statement:
 
-        UPDATE <table_name> SET age = 35 WHERE name = 'Alice';
+mysql> SHOW DATABASES;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+4 rows in set (0.00 sec)
 
-### Delete data from a table
+### Creating a new database.  Use a CREATE DATABASE statement:
 
-        DELETE FROM <table_name> WHERE name = 'Alice';
+mysql> CREATE DATABASE pets;
+Query OK, 1 row affected (0.01 sec)
 
-Indexes
+### Check if the database has been created:
 
-### Create an index
+mysql> SHOW DATABASES;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| pets               |
+| sys                |
++--------------------+
+5 rows in set (0.00 sec)
 
-        CREATE INDEX idx_name ON <table_name> (name);
+### Creating a table inside a database.  First, pick the database in which you want to create the table with a USE statement:
 
-### Show indexes on a table
+mysql> USE pets
+Database changed
+
+The USE statement tells MySQL to use pets as the default database for subsequent statements. Next, create a table with a CREATE TABLE statement:
+
+CREATE TABLE cats
+(
+  id              INT unsigned NOT NULL AUTO_INCREMENT, # Unique ID for the record
+  name            VARCHAR(150) NOT NULL,                # Name of the cat
+  owner           VARCHAR(150) NOT NULL,                # Owner of the cat
+  birth           DATE NOT NULL,                        # Birthday of the cat
+  PRIMARY KEY     (id)                                  # Make the id the primary key
+);
+
+
+### Check if the table has been created with a SHOW TABLES statement:
+
+mysql> SHOW TABLES;
++----------------+
+| Tables_in_pets |
++----------------+
+| cats           |
++----------------+
+1 row in set (0.00 sec)
+
+### DESCRIBE shows information on all columns of a table:
+
+mysql> DESCRIBE cats;
++-------+------------------+------+-----+---------+----------------+
+| Field | Type             | Null | Key | Default | Extra          |
++-------+------------------+------+-----+---------+----------------+
+| id    | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+| name  | varchar(150)     | NO   |     | NULL    |                |
+| owner | varchar(150)     | NO   |     | NULL    |                |
+| birth | date             | NO   |     | NULL    |                |
++-------+------------------+------+-----+---------+----------------+
+4 rows in set (0.00 sec)
+
+### Adding records into a table.  Use, for example, an INSERT...VALUES statement:
+
+INSERT INTO cats ( name, owner, birth) VALUES
+  ( 'Sandy', 'Lennon', '2015-01-03' ),
+  ( 'Cookie', 'Casey', '2013-11-13' ),
+  ( 'Charlie', 'River', '2016-05-21' );
+
+### See Literal Values for how to write string, date, and other kinds of literals in MySQL.
+
+### Retrieving records from a table.  Use a SELECT statement, and “*” to match all columns:
+
+mysql> SELECT * FROM cats;
++----+---------+--------+------------+
+| id | name    | owner  | birth      |
++----+---------+--------+------------+
+|  1 | Sandy   | Lennon | 2015-01-03 |
+|  2 | Cookie  | Casey  | 2013-11-13 |
+|  3 | Charlie | River  | 2016-05-21 |
++----+---------+--------+------------+
+3 rows in set (0.00 sec)
+
+### To select specific columns and rows by a certain condition using the WHERE clause:
+
+mysql> SELECT name FROM cats WHERE owner = 'Casey';
++--------+
+| name   |
++--------+
+| Cookie |
++--------+
+1 row in set (0.00 sec)
+
+### Deleting a record from a table.  Use a DELETE statement to delete a record from a table, specifying the criterion for deletion with the WHERE clause:
+
+mysql> DELETE FROM cats WHERE name='Cookie';
+Query OK, 1 row affected (0.05 sec)
+
+mysql> SELECT * FROM cats;
++----+---------+--------+------------+
+| id | name    | owner  | birth      |
++----+---------+--------+------------+
+|  1 | Sandy   | Lennon | 2015-01-03 |
+|  3 | Charlie | River  | 2016-05-21 |
++----+---------+--------+------------+
+2 rows in set (0.00 sec)
+
+### Adding or deleting a column from a table.  Use an ALTER TABLE...ADD statement to add a column. You can use, for example, an AFTER clause to specify the location of the new column:
+
+mysql> ALTER TABLE cats ADD gender CHAR(1) AFTER name;
+Query OK, 0 rows affected (0.24 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+Use DESCRIBE to check the result:
+
+mysql> DESCRIBE cats;
++--------+------------------+------+-----+---------+----------------+
+| Field  | Type             | Null | Key | Default | Extra          |
++--------+------------------+------+-----+---------+----------------+
+| id     | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+| name   | varchar(150)     | NO   |     | NULL    |                |
+| gender | char(1)          | YES  |     | NULL    |                |
+| owner  | varchar(150)     | NO   |     | NULL    |                |
+| birth  | date             | NO   |     | NULL    |                |
++--------+------------------+------+-----+---------+----------------+
+5 rows in set (0.00 sec)
+
+### SHOW CREATE TABLE shows a CREATE TABLE statement, which provides even more details on the table:
+
+mysql> SHOW CREATE TABLE cats\G
+*************************** 1. row ***************************
+       Table: cats
+Create Table: CREATE TABLE `cats` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) NOT NULL,
+  `gender` char(1) DEFAULT NULL,
+  `owner` varchar(150) NOT NULL,
+  `birth` date NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=latin1
+1 row in set (0.00 sec)
+
+### Use ALTER TABLE...DROP to delete a column:
+
+mysql> ALTER TABLE cats DROP gender;
+Query OK, 0 rows affected (0.19 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> DESCRIBE cats;
++-------+------------------+------+-----+---------+----------------+
+| Field | Type             | Null | Key | Default | Extra          |
++-------+------------------+------+-----+---------+----------------+
+| id    | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+| name  | varchar(150)     | NO   |     | NULL    |                |
+| owner | varchar(150)     | NO   |     | NULL    |                |
+| birth | date             | NO   |     | NULL    |                |
++-------+------------------+------+-----+---------+----------------+
+4 rows in set (0.00 sec)
 
-        SHOW INDEX FROM <table_name>;
-
-### Drop an index
-
-        DROP INDEX idx_name ON <table_name>;
-
-User Management
-
-### Create a new user
-
-        CREATE USER '<username>'@'localhost' IDENTIFIED BY '<password>';
-
-### Grant privileges to a user
-
-        GRANT ALL PRIVILEGES ON <database_name>.* TO '<username>'@'localhost';
-        FLUSH PRIVILEGES;
-
-### Revoke privileges from a user
-
-        REVOKE ALL PRIVILEGES, GRANT OPTION FROM '<username>'@'localhost';
-
-### Show all users
-
-        SELECT User, Host FROM mysql.user;
-
-### Drop a user
-
-        DROP USER '<username>'@'localhost';
-
-Performance and Monitoring
-
-### Show running processes
-
-        SHOW PROCESSLIST;
-
-### Kill a process
-
-        KILL <process_id>;
-
-### nable query logging
-
-        SET GLOBAL general_log = 'ON';
-
-### Disable query logging
-
-        SET GLOBAL general_log = 'OFF';
-
-Backup and Restore
-
-### Backup a database
-
-        mysqldump -u <username> -p <database_name> > backup.sql
-
-### Restore a database
-
-        mysql -u <username> -p <database_name> < backup.sql
-
-Exit MySQL Shell
-
-### Quit MySQL
-
-        EXIT;

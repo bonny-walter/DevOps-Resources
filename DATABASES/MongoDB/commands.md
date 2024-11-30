@@ -1,5 +1,4 @@
-                                                  Basic Database Operations
-
+Basic Database Operations
 ### Show all databases 
         show dbs
 
@@ -86,7 +85,7 @@ MongoDB creates them automatically when you insert a document.
 ### List users
 
         db.getUsers()
-
+show
 ### Drop a user
 
         db.dropUser("username")
