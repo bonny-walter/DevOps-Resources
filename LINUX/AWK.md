@@ -1,7 +1,7 @@
-###  awk
+# awk
 
 awk is used for advanced text processing, especially for column-based operations.
-### Examples
+## Examples
 
     Print the second column
     If file.txt contains:

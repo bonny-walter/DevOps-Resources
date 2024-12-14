@@ -1,7 +1,7 @@
-### cut
+# cut
 
 cut is used to extract specific fields, bytes, or characters.
-Examples
+### Examples
 
     Extract specific columns
     If file.txt contains:
@@ -20,7 +20,7 @@ John:M
 Alice:F
 Bob:M
 
-### 
+---
 
 Extract characters
 Extract the first three characters of each line:
@@ -33,7 +33,7 @@ Joh
 Ali
 Bob
 
-### 
+---
 
 Extract bytes
 If file.txt contains:
@@ -50,7 +50,7 @@ Output:
 ab
 gh
 
-### 
+---
 
 Extract fields from /etc/passwd
 Get usernames and default shells from /etc/passwd:
